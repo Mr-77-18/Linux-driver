@@ -28,7 +28,9 @@ setenv bootargs 'console=ttymxc0# 15200 root=/dev/nfs rw nfsroot=172.31.225.188:
 创建目录/home/lsh/linuxdriver/nfs/rootfs/, /home/lsh/linuxdirver/tftpboot/。可以根据自己的实际情况替换/home/lsh/linuxdriver/
 
 2. ubuntu中启动nfs , tftp服务
-<font color=red>设置nfs服务配置并启动：</font>
+
+**设置nfs服务配置并启动：** 
+
 使用sudo vim /etc/exports打开文件并添加如下内容：
 ```c
 /home/lsh/linuxdriver/nfs *(rw,sync,no_root_squash) 
@@ -44,10 +46,9 @@ setenv bootargs 'console=ttymxc0# 15200 root=/dev/nfs rw nfsroot=172.31.225.188:
 
 保存退出,使用sudo service nfs-kernel-server restart重启nfs服务
 
-<font color=red>设置tftp配置并启动服务</font>
+**设置tftp配置并启动服务:**
 
 参考唐部长
-
 
 3. ubuntu中将zImage , dtb , 根文件系统放入对应位置
 最后是在rootfs里面放入文件系统内容，如下所示：
