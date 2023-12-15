@@ -39,7 +39,7 @@ setenv bootargs 'console=ttymxc0# 15200 root=/dev/nfs rw nfsroot=172.31.225.188:
 打开文件：sudo vim /etc/default/nfs-kernel-server
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/3.png" weight="500" height="500">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/3.png">
 </p>
 
 保存退出,使用sudo service nfs-kernel-server restart重启nfs服务
@@ -52,15 +52,13 @@ setenv bootargs 'console=ttymxc0# 15200 root=/dev/nfs rw nfsroot=172.31.225.188:
 3. ubuntu中将zImage , dtb , 根文件系统放入对应位置
 最后是在rootfs里面放入文件系统内容，如下所示：
 <p align="center">
-<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/1.png" weight="500" height="500">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/1.png" >
 </p>
 
 在tftpboot下放入如下内容
 <p align="center">
-<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/2.png" weight="500" height="500">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/2.png">
 </p>
-
-
 
 4. 启动
 进入uboot后设置参数：参考上方uboot参数。最后输入boot命令启动
