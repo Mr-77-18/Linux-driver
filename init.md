@@ -37,8 +37,6 @@ setenv bootargs 'console=ttymxc0# 15200 root=/dev/nfs rw nfsroot=172.31.225.188:
 <可选>:这个步骤可以在最终挂在出错的情况下进行，解决nfs版本冲突问题（正点原子教程没有提及）
 
 打开文件：sudo vim /etc/default/nfs-kernel-server
-![1]() 
-
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/3.png" weight="500" height="500">
