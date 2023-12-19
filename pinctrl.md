@@ -253,3 +253,30 @@ static int imx_pinctrl_parse_groups(struct device_node *np,
   return 0;
 }
 `````
+回到imx_pinctrl_probe()函数里面，最后调用了pinctrl_register(imx_pinctrl_desc , &pdev->dev , ipctl)来向内核注册一个pin控制器，这个控制器里面就包含了空着它所管理的所有Pin的基础操作函数以及各种group，就是不同Pin复用的组合（在dts里面设置的）
+
+好，这个入口我们已经分析完成了，但是会发现到目前为止，也只是向内核注册了这些信息，并没有对实际的pin进行设置复用功能，也就是我们这个场景下led的复用并没有实际进行操作。那具体是在哪里呢？
+
+**是在驱动和设备匹配的时候进行的** 即led设备与led_driver匹配的时候进行，这里不展开讲匹配过程。只关注有关Pin设置的内容。在匹配过程中，会调用really_probe函数。
+```c
+//drivers/base/dd.c
+static int really_probe(struct device* dev , struct device_driver* drv){
+  ...
+  /*If using pinctrl , bind pins now before probing*/
+  ret = pinctrl_bind_pins(dev);
+  ...
+}
+`````
+继续跟进：
+```c
+int pinctrl_bind_pins(struct device* dev){
+  ...
+  //在这里进行pin的设置,信息都已经在之前保存好了
+  ret = pinctrl_select_state(dev->pins->p , dev->pins->default_state);
+  ...
+}
+`````
+
+
+
+
