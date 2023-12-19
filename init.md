@@ -63,3 +63,28 @@ setenv bootargs 'console=ttymxc0# 15200 root=/dev/nfs rw nfsroot=172.31.225.188:
 
 4. 启动
 进入uboot后设置参数：参考上方uboot参数。最后输入boot命令启动
+
+## led驱动实验
+led的实验可以从不同角度进去。
+
+首先从驱动本身的角度来讲，可以分成以下两种：
+1. 裸机驱动
+2. linux驱动
+
+其次细分到linux驱动，又可以有多种角度:
+1. 用不用pinctl子系统
+2. 用不用设备树
+3. 用不用device -- bus -- driver模型
+
+所以在写led驱动之前，得先却确认使用哪一种方式。当然，本文是学习linux驱动的，所以都会去实现，除了裸机驱动（这属于裸机开发的内容，不属于本文学习部分）。
+
+下面开始写驱动。大家跟紧脚步。
+
+#### pinctl(√) ; 设备树（x) ; device -- bus --driver(x)
+```c
+`````
+
+<++>
+
+#### pinctl(x) ; 设备树（x) ; device -- bus --driver(√)
+
