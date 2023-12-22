@@ -8,7 +8,7 @@ i<p align="center">
 
 [各种点灯方式](./led.md)
 
-[pinctrl子系统分析](./pinctrl.md)
+[pinctrl子系统分析](./pinctrl.md)\
 **参考资料** :\
 [linux kernel input子系统分析](https://www.cnblogs.com/chenfulin5/p/5703015.html)
 
