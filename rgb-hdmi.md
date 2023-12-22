@@ -159,3 +159,10 @@ sii902x是在板子上属于i2c设备，挂在了开发板的i2c2上，所以在
 `````
 
 至此修改完成。
+
+---
+
+最终显示效果：
+<p align="center">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/xianshi.png">
+</p>
