@@ -10,7 +10,7 @@ i<p align="center">
 
 [pinctrl子系统分析](./pinctrl.md)\
 **参考资料** :\
-[linux kernel input子系统分析](https://www.cnblogs.com/chenfulin5/p/5703015.html)
+[     linux kernel input子系统分析](https://www.cnblogs.com/chenfulin5/p/5703015.html)
 
 [rgb转hdmi实验](./rgb-hdmi.md)
 
