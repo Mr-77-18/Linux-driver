@@ -291,4 +291,10 @@ static int bgpio_setup_direction(struct bgpio_chip *bgc,
 
 不知道你看到没有，反正我看到这个函数的时候很兴奋，因为确实在这里对gpio_chip->direction_output进行了赋值，这里赋值为bgpio_dir_out_inv()函数。没错，完全对接上了，形成闭环了。
 
+下面是chip->direction_output()的具体过程。**只适合本例子** 因为具体的函数在不同的场景会不一样，比如如果寄存器是16位的，那么对应bgpio_write16()。不过都是在下面这三个结构体里面转悠。
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/gpio.png">
+</p>
+
 这部分只是gpio子系统的冰山一角，我将继续往下一点一点剥开它的全貌。一起期待。
