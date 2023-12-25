@@ -216,6 +216,12 @@ out_bgio:
 `````
 
 我们只关注与gpio_chip有关的部分。我们可以在代码中可以看到，后面调用了gpiochip_add()函数注册了一个gpio_chip结构体，那么到这里你是否恍然大悟，因为好像跟从上往下走的那条线对接上了。那么我们看这个结构体是否有对应的chip->direction_output()函数呢，按道理来说，应该会被初始化。在代码中我们跟进bgpio_init()函数去看，因为第一个参数就是包含了gpio_chip结构体。
+
+这个函数比较关键，因为这个函数对各种回调函数进行了设置。这里简单总结一些，有利于后面对整个函数调用链的理解。(**仅以本实验例子为准** )
+1. 实例化了struct gpio_chip里面的.direction_ouput为bgpio_dir_out()。整个函数就是chip->direction_output()调用的函数
+2. 实例化了struct gpio_chip里面的.set为bgpio_set_set(),整个函数被bgpio_dir_out()函数调用
+3. 实例化了struct bgpio_chip里面的write_reg为bgpio_write8()函数，整个函数被bgpio_set_set()函数调用
+4. 最后bgpio_write8()调用writeb()来写寄存器
 ```c
 
 int bgpio_init(struct bgpio_chip *bgc, struct device *dev,
@@ -237,12 +243,14 @@ int bgpio_init(struct bgpio_chip *bgc, struct device *dev,
 	bgc->gc.label = dev_name(dev);
 	bgc->gc.base = -1;
 	bgc->gc.ngpio = bgc->bits;
-	bgc->gc.request = bgpio_request;
+	bgc->gc.request = bgpio_request;//这里设置了struct gpio_chip里面的.request字段
 
+	//这里面会设置strcut gpio_chip的.set字段
 	ret = bgpio_setup_io(bgc, dat, set, clr);
 	if (ret)
 		return ret;
 
+		//这里面会设置struct bgpio_chip的.write_reg字段
 	ret = bgpio_setup_accessors(dev, bgc, flags & BGPIOF_BIG_ENDIAN,
 				    flags & BGPIOF_BIG_ENDIAN_BYTE_ORDER);
 	if (ret)
