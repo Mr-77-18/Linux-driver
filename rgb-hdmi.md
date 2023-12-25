@@ -49,6 +49,8 @@
         };
 };
 `````
+这里面一定要注意pixelclk-active要设为1
+
 可以看出io复用一共有两个：pinctrl_lcdif_dat , pinctrl_lcdif_ctrl。在iomuxc节点下加入这两个节点的描述：
 ```c
   pinctrl_lcdif_dat: lcdifdatgrp {
