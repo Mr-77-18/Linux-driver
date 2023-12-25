@@ -12,7 +12,7 @@
 **参考资料** :\
 [linux kernel input子系统分析](https://www.cnblogs.com/chenfulin5/p/5703015.html)
 
-[rgb转hdmi实验](./rgb-hdmi.md)\
+[rgb转hdmi实验](./rgb-hdmi.md)
 
 [gpio子系统分析](./gpio.md)
 
