@@ -1,6 +1,6 @@
 ## 一起all驱动啊
 开发板长这样哦，漂亮吧！（正点原子）
-i<p align="center">
+<p align="center">
 <img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/banzi.png">
 </p>
 
@@ -10,10 +10,11 @@ i<p align="center">
 
 [pinctrl子系统分析](./pinctrl.md)\
 **参考资料** :\
-[     linux kernel input子系统分析](https://www.cnblogs.com/chenfulin5/p/5703015.html)
+[linux kernel input子系统分析](https://www.cnblogs.com/chenfulin5/p/5703015.html)
 
 [rgb转hdmi实验](./rgb-hdmi.md)
 
+[gpio子系统分析](./gpio.md)\
 ---
 
 其它参考资料：\
