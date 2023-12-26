@@ -16,6 +16,9 @@
 
 [gpio子系统分析](./gpio.md)
 
+[i2c子系统分析-曾滔](./i2c_driver_learn.md)\
+[i2c子系统分析-刘森宏](./i2c_subsystem.md)
+
 ---
 
 其它参考资料：\
