@@ -10,9 +10,97 @@
 i2c_algorithm中：
 >		int (*master_xfer)(struct i2c_adapter *adap,struct i2c_msg *msgs, int num); //i2c适配器的传输函数,完成设备与i2c之间的通信
 
-之后i2c核心层调用i2c_add_adapter向系统注册adapter。
+看看调用master_xfer的全过程：
+首先是自己写的write_regs中调用i2c_transfer:
+>		int i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num){
+>			if (in_atomic() || irqs_disabled()) {
+>			ret = i2c_trylock_adapter(adap);
+>			
+>			...
+>			ret = __i2c_transfer(adap, msgs, num);
+>			i2c_unlock_adapter(adap);
+>			...
+>		}
+继续查看__i2c_transfer：
+>		int __i2c_transfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num){
+>			for (ret = 0, try = 0; try <= adap->retries; try++) {
+>				ret = adap->algo->master_xfer(adap, msgs, num);		//这里调用了master_xfer，传输函数
+>				if (ret != -EAGAIN)
+>						break;
+>				if (time_after(jiffies, orig_jiffies + adap->timeout))
+>				       break;
+>			}
+>		}
+最终在这里调用了master_xfer
 
-i2c_adapter是一个核心模块，负责管理所有注册到系统的i2c总线适配器和设备，提供通信方式。
+还有很多static_key_false(...)的叫做静态键的函数，当静态键的状态为static_key_false时，相关的代码段将被编译进内核，但在运行时将被跳过，从而减少了不必要的执行开销。
+
+
+之后i2c核心层调用i2c_add_adapter向系统注册adapter。i2c_adapter是一个核心模块，负责管理所有注册到系统的i2c总线适配器和设备，提供通信方式。
+查看i2c_add_adapter函数：
+>		int i2c_add_adapter(struct i2c_adapter *adapter){
+>		...
+>		if (dev->of_node) {
+>		       id = of_alias_get_id(dev->of_node, "i2c");
+>		       if (id >= 0) {
+>					adapter->nr = id;
+>					return __i2c_add_numbered_adapter(adapter);
+>				}
+>		}
+>		...
+>		return i2c_register_adapter(adapter);
+>		}
+先看看__i2c_add_numbered_adapter(adapter) , 注册一个已知id的i2c_adapter：
+>		static int __i2c_add_numbered_adapter(struct i2c_adapter *adap)
+>		{
+>		int id;
+>		
+>		 mutex_lock(&core_lock);
+>		id = idr_alloc(&i2c_adapter_idr, adap, adap->nr, adap->nr + 1,
+>		           GFP_KERNEL);
+>		mutex_unlock(&core_lock);
+>		if (id < 0)
+>		     return id == -ENOSPC ? -EBUSY : id;
+>		
+>		return i2c_register_adapter(adap);
+>		}
+最后也是调用了i2c_register_adapter:
+>		static int i2c_register_adapter(struct i2c_adapter *adap)
+>		{
+>		...
+>			dev_set_name(&adap->dev, "i2c-%d", adap->nr);
+>		  	adap->dev.bus = &i2c_bus_type;
+>		 	adap->dev.type = &i2c_adapter_type;
+>		 	res = device_register(&adap->dev);
+>		...
+>		exit_recovery:
+>		...
+>		if (adap->nr < __i2c_first_dynamic_bus_num)
+>         i2c_scan_static_board_info(adap);
+>		...
+>		}
+这里将adapter注册到了i2c_bus_type上，之后调用了i2c_scan_static_board_info(adap)，进去看看是干什么的。
+
+static void i2c_scan_static_board_info(struct i2c_adapter *adapter)，获取了i2c_devinfo，之后调用了i2c_new_device:
+>		struct i2c_client *i2c_new_device(struct i2c_adapter *adap, struct i2c_board_info const *info)
+>		{
+>		...
+>		client->dev.parent = &client->adapter->dev;
+>		  client->dev.bus = &i2c_bus_type;
+>		  client->dev.type = &i2c_client_type;
+>		  client->dev.of_node = info->of_node;
+>		  client->dev.fwnode = info->fwnode;
+>		
+>		  i2c_dev_set_name(adap, client);
+>		  status = device_register(&client->dev);
+>		...
+>		}
+在这里还注册了一个client设备到i2c总线上，类型为i2c_client_type。
+
+i2c的设备驱动和总线驱动就这样联系起来了？应该是吧。还有很多细节没有深挖
+
+
+
 
 
 ###		1.2设备驱动：关注i2c_client /  i2c_driver
@@ -74,6 +162,7 @@ driver.of_match_table是匹配dts中的设备节点的（device_node，platfrom�
 >			reg = <0x1e>;
 >		};
 make dtbs , 用新的dtb打开，可以在sys/bus/i2c/devices下看到0-001e
+
 modprobe时显示ap3216c busy，原因是linux内核中有一个ap3216驱动了，在Device Driver -> character driver -> Lite-On.. 取消掉再编译zImage
 >		make zImage -j8
 
@@ -81,3 +170,8 @@ modprobe时显示ap3216c busy，原因是linux内核中有一个ap3216驱动了�
 >		modprobe ap3216c.ko
 >		./ap3216cApp /dev/ap3216c
 >		可以看到一直在循环输出， 此时用手电筒对板子进行照射有变化
+
+
+
+
+
