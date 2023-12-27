@@ -67,7 +67,7 @@ soc_probe_dai_link()
 
 snd_card_new()
 <p align="center">
-<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/g1.png">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/g1.gif">
 </p>
 ---
 
