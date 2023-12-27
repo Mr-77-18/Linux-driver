@@ -65,10 +65,26 @@ soc_probe_dai_link()
 
 下面我们先建立这些关系，让脑子里面有一个针对整个ASOC框架的动态过程。
 
-snd_card_new()
+**snd_card_new():** 
 <p align="center">
 <img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/g1.gif">
 </p>
+
+**snd_pcm_new():** 
+<p align="center">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/g2.gif">
+</p>
+
+**snd_pcm_set_ops():** 
+<p align="center">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/g3.gif">
+</p>
+
+**snd_card_register():** 
+<p align="center">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/g4.gif">
+</p>
+
 ---
 
 然后就是驱动框架分析了:我们知道，ASOC驱动框架分为Machine , Platform , Codec三部分。其中Machine是关键，所以我们先从Machine开始分析
