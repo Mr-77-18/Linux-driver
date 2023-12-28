@@ -16,7 +16,7 @@ snd_pcm_osp
 `````
 它们的关系如下：
 <p align="center">
-<img src="<++>">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/asoc1.png">
 </p>
 
 ASOC中加上的数据结构(这个比较好分辨),因为这里面的数据结构都是带有"soc"这个字段的。
@@ -33,12 +33,12 @@ snd_soc_platform_driver
 
 关系大概如下：
 <p align="center">
-<img src="<++>">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/asoc2.png">
 </p>
 
 以上几张图片在网上也很多，但是很少把这两部分连接起来的，没有一个全局的视图。本文整理全局视图如下。
 <p align="center">
-<img src="<++>">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/asoc3.png">
 </p>
 
 除了这些东西，我们还需要对一些常用的api进行总结：
@@ -55,15 +55,24 @@ snd_card_register()
 
 2. ASOC框架内
 ```c
-snd_soc_instantiate_card()
-snd_card_create()
-soc_probe_dai_link()
-	->soc_new_pcm()
-		->snd_pcm_new()
+devm_snd_soc_register_card()
+	->snd_soc_register_card()
+	   ->snd_soc_instantiate_card()
+				->snd_card_new()
+				->soc_probe_link_dais()
+					->soc_new_pcm()
+						->snd_pcm_new()
+						->snd_pcm_set_ops()
+				->snd_card_register()
+
+其实从这里也可以看出来ASOC是对ALSA的进一步封装因为ALSA框架内的函数在这里都是被封装起来的。
+
 `````
 其次在开分析代码之前，还有一个我认为是最重要的，就是每一个函数都干了什么，网上很多都是直接用文字大概描述函数功能，但是我认为最好的方式是建立函数与图像之间的关系。即一个函数执行之后，会在整个框架中多一个什么结构体或者改变。这个是很多文章都没有的。
 
 下面我们先建立这些关系，让脑子里面有一个针对整个ASOC框架的动态过程。
+
+1. ALSA框架内
 
 **snd_card_new():** 
 <p align="center">
@@ -83,6 +92,12 @@ soc_probe_dai_link()
 **snd_card_register():** 
 <p align="center">
 <img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/g4.gif">
+</p>
+
+2. ASOC框架内
+最终的函数莫过于devm_snd_soc_register_card()
+<p align="center">
+<img src="https://raw.githubusercontent.com/Mr-77-18/Don-t-want-to-learn/main/image/g5.gif">
 </p>
 
 ---
