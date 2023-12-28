@@ -19,6 +19,8 @@
 [i2c子系统分析-曾滔](./i2c_driver_learn.md)\
 [i2c子系统分析-刘森宏](./i2c_subsystem_liu.md)
 
+[ASOC框架分析](./asoc.md)
+
 ---
 
 其它参考资料：\
