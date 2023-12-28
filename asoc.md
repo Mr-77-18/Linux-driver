@@ -524,4 +524,264 @@ static int _snd_pcm_new(struct snd_card *card, const char *id, int device,
 
 分析一下write的过程
 
----
+首先我们要找到整个主入口，ASOC本质是字符设备驱动，主程序号是116，次设备号是随机分配的。应用层open(/dev/snd/pcmC1D0p)的时候其实是调用了chrdev_open(),看下面代码段就可以理解了。
+```c
+char_dev.c
+/*
+ * Called every time a character special file is opened
+ * 应用层open每一个字符设备都会执行这个函数，也就是这个函数是所以字符设备的入口函数
+ */
+static int chrdev_open(struct inode *inode, struct file *filp)
+{
+fops = fops_get(p->ops);//获得file_operations *fops
+replace_fops(filp, fops);//替换file_operations
+ret = filp->f_op->open(inode, filp);//调用到具体节点对应的open函数。Asoc就是snd_open
+}
+ 
+sound.c:
+static const struct file_operations snd_fops =
+{//顶层 file_operations。实现转换作用
+	.owner =	THIS_MODULE,
+	.open =		snd_open,
+	.llseek =	noop_llseek,
+};
+ 
+//alsa实际是个字符设备驱动 主设备号是#define CONFIG_SND_MAJOR	116	
+static int __init alsa_sound_init(void) {
+	if (register_chrdev(major, "alsa", &snd_fops)) {
+		pr_err("ALSA core: unable to register native major device number %d\n", major);
+		return -EIO;
+	}
+}
+`````
+
+没错，最终是调用了snd_open函数，这个函数干了什么呢，我们继续看。
+```c
+static int snd_open(struct inode *inode, struct file *file)
+{
+	/*没错，找到保存在snd_minors当中的snd_minor结构体，因为其中保存了争对这个snd_device的file_operations,这个file_operations在snd_pcm_dev_register()当中被设置*/
+	mptr = snd_minors[minor];
+	
+	/*然后替换掉file->f_op,这样open传回来的描述符中的file中保存的就是这个f_ops,后续在调用write什么的时候都是调用到mptr->f_ops这里面的函数*/
+	new_fops = fops_get(mptr->f_ops);
+	replace_fops(file, new_fops);
+
+	if (file->f_op->open)
+		err = file->f_op->open(inode, file);
+	return err;
+}
+`````
+
+我们知道snd_soc_instantiate_card()中会调用snd_card_register()触发调用snd_device.ops->dev_register(),那么对于pcm来说，在snd_pcm_new()->_snd_pcm_new()中有：
+```c
+static int _snd_pcm_new(struct snd_card *card, const char *id, int device,
+		int playback_count, int capture_count, bool internal,
+		struct snd_pcm **rpcm)
+{
+	/*这里面创建了ops,最终会成为pcm里面的ops*/
+	static struct snd_device_ops ops = {
+		.dev_free = snd_pcm_dev_free,
+		.dev_register =	snd_pcm_dev_register,
+		.dev_disconnect = snd_pcm_dev_disconnect,
+	};
+
+  /*加入到snd_card当中去*/
+	snd_device_new(card, SNDRV_DEV_PCM, pcm, &ops)
+`````
+
+可以看到，snd_device.ops->dev_register被赋值为snd_pcm_dev_register.我们看这个函数干了什么
+```c
+static int snd_pcm_dev_register(struct snd_device *device)
+{
+    ...
+		/* register pcm */
+		err = snd_register_device(devtype, pcm->card, pcm->device,
+					  &snd_pcm_f_ops[cidx], pcm,
+					  &pcm->streams[cidx].dev);
+    ...
+}
+
+int snd_register_device(int type, struct snd_card *card, int dev,
+			const struct file_operations *f_ops,
+			void *private_data, struct device *device)
+{
+  ...
+	preg->f_ops = f_ops;
+
+  ...
+	snd_minors[minor] = preg;
+  ...
+}
+
+`````
+
+没错，这里往snd_minors当中加入了snd_minor用来表示这个snd_device.其中的file_operation就是传进来的snd_pcm_f_ops[].
+```c
+const struct file_operations snd_pcm_f_ops[2] = {
+	{
+		.owner =		THIS_MODULE,
+		.write =		snd_pcm_write,
+		.write_iter =		snd_pcm_writev,
+		.open =			snd_pcm_playback_open,
+		.release =		snd_pcm_release,
+		.llseek =		no_llseek,
+		.poll =			snd_pcm_playback_poll,
+		.unlocked_ioctl =	snd_pcm_playback_ioctl,
+		.compat_ioctl = 	snd_pcm_ioctl_compat,
+		.mmap =			snd_pcm_mmap,
+		.fasync =		snd_pcm_fasync,
+		.get_unmapped_area =	snd_pcm_get_unmapped_area,
+	},
+	{
+		.owner =		THIS_MODULE,
+		.read =			snd_pcm_read,
+		.read_iter =		snd_pcm_readv,
+		.open =			snd_pcm_capture_open,
+		.release =		snd_pcm_release,
+		.llseek =		no_llseek,
+		.poll =			snd_pcm_capture_poll,
+		.unlocked_ioctl =	snd_pcm_capture_ioctl,
+		.compat_ioctl = 	snd_pcm_ioctl_compat,
+		.mmap =			snd_pcm_mmap,
+		.fasync =		snd_pcm_fasync,
+		.get_unmapped_area =	snd_pcm_get_unmapped_area,
+	}
+}
+`````
+
+根据是playback还是capture选择合适的file_operations.好的，那么到这里我们已经通过open(dev/snd/pcmXXX)找到了最终的入口操作函数表file_operations。所以在调用write()的时候最终调用的是snd_pcm_f_ops[0].write();
+
+```c
+static ssize_t snd_pcm_write(struct file *file, const char __user *buf,
+			     size_t count, loff_t * offset)
+{
+  ...
+	result = snd_pcm_lib_write(substream, buf, count);
+  ...
+}
+`````
+
+```c
+snd_pcm_sframes_t snd_pcm_lib_write(struct snd_pcm_substream *substream, const void __user *buf, snd_pcm_uframes_t size)
+{
+  ...
+	return snd_pcm_lib_write1(substream, (unsigned long)buf, size, nonblock,
+				  snd_pcm_lib_write_transfer);
+}
+`````
+```c
+static snd_pcm_sframes_t snd_pcm_lib_write1(struct snd_pcm_substream *substream, 
+					    unsigned long data,
+					    snd_pcm_uframes_t size,
+					    int nonblock,
+					    transfer_f transfer)
+{
+      ...
+			err = snd_pcm_start(substream);
+      ...
+}
+`````
+
+```c
+static struct action_ops snd_pcm_action_start = {
+	.pre_action = snd_pcm_pre_start,
+	.do_action = snd_pcm_do_start,
+	.undo_action = snd_pcm_undo_start,
+	.post_action = snd_pcm_post_start
+};
+
+int snd_pcm_start(struct snd_pcm_substream *substream)
+{
+	return snd_pcm_action(&snd_pcm_action_start, substream,
+			      SNDRV_PCM_STATE_RUNNING);
+}
+`````
+
+```c
+static int snd_pcm_action(struct action_ops *ops,
+			  struct snd_pcm_substream *substream,
+			  int state)
+{
+    ...
+		return snd_pcm_action_single(ops, substream, state);
+    ...
+}
+`````
+
+```c
+static int snd_pcm_action_single(struct action_ops *ops,
+				 struct snd_pcm_substream *substream,
+				 int state)
+{
+	int res;
+	
+	res = ops->pre_action(substream, state);
+	if (res < 0)
+		return res;
+	res = ops->do_action(substream, state);
+	if (res == 0)
+		ops->post_action(substream, state);
+	else if (ops->undo_action)
+		ops->undo_action(substream, state);
+	return res;
+}
+`````
+这里面的action_ops是在snd_pcm_action()当中的第一个参数传过来的，所以调用的ops->do_action是snd_pcm_do_start()
+```c
+static int snd_pcm_do_start(struct snd_pcm_substream *substream, int state)
+{
+	if (substream->runtime->trigger_master != substream)
+		return 0;
+	return substream->ops->trigger(substream, SNDRV_PCM_TRIGGER_START);
+}
+
+`````
+没错，这里调用了substream->ops->trigger(),如果substream是playback来说，对应的是什么，在哪里设置了这个substream->ops你知道吗。答案是snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &rtd->ops)。这个在soc_pcm_new当中被调用。没错这个ops就是struct snd_soc_pcm_runtime当中的ops
+```c
+int soc_new_pcm(struct snd_soc_pcm_runtime *rtd, int num)
+{ 
+	/* ASoC PCM operations */
+	/*这里设置snd_soc_pcm_runtime中的ops  */
+	  rtd->ops.open		= soc_pcm_open;
+		rtd->ops.hw_params	= soc_pcm_hw_params;
+		rtd->ops.prepare	= soc_pcm_prepare;
+		rtd->ops.trigger	= soc_pcm_trigger;
+		rtd->ops.hw_free	= soc_pcm_hw_free;
+		rtd->ops.close		= soc_pcm_close;
+		rtd->ops.pointer	= soc_pcm_pointer;
+		rtd->ops.ioctl		= soc_pcm_ioctl;
+	/*这里将snd_pcm.substream.ops设置成为snd_soc_pcm_runtime中ops  */
+	if (playback)
+		snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &rtd->ops);
+
+	if (capture)
+		snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &rtd->ops);
+}
+`````
+
+没错，对应到的是soc_pcm_trigger()
+```c
+static int soc_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
+{
+	for (i = 0; i < rtd->num_codecs; i++) {
+			ret = codec_dai->driver->ops->trigger(substream,
+							      cmd, codec_dai);
+	}
+
+	if (platform->driver->ops && platform->driver->ops->trigger) {
+		ret = platform->driver->ops->trigger(substream, cmd);
+	}
+
+	if (cpu_dai->driver->ops && cpu_dai->driver->ops->trigger) {
+		ret = cpu_dai->driver->ops->trigger(substream, cmd, cpu_dai);
+	}
+
+	if (rtd->dai_link->ops && rtd->dai_link->ops->trigger) {
+		ret = rtd->dai_link->ops->trigger(substream, cmd);
+	}
+}
+
+
+`````
+
+没错，这里面最终回调platform和codec对应的操作函数。看到这里，你应该会感到兴奋。因为你似乎有了那么一点头绪，不回觉得ASOC是一个庞然大物，至少你在这个迷茫的世界里面找到了一条清晰的道理（write的过程).依靠这条路继续探索ASOC吧，加油年轻人
