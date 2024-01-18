@@ -61,34 +61,34 @@ DRM把GPU当做DRM设备， 在/dev/dri/cardX创建设备文件与之连接。
 
 modeset设备的结构体，之后会将dev加入到modeset_list中（一个全局的显示器设备列表）
 >		struct modeset_dev {
-			struct modeset_dev *next;
-			uint32_t width;
-			uint32_t height;
-			uint32_t stride;
-			uint32_t size;
-			uint32_t handle;
-			uint8_t *map;
-			drmModeModeInfo mode;
-			uint32_t fb;
-			uint32_t conn;
-			uint32_t crtc;
-			drmModeCrtc *saved_crtc;
-};
+>			struct modeset_dev *next;
+>			uint32_t width;
+>			uint32_t height;
+>			uint32_t stride;
+>			uint32_t size;
+>			uint32_t handle;
+>			uint8_t *map;
+>			drmModeModeInfo mode;
+>			uint32_t fb;
+>			uint32_t conn;
+>			uint32_t crtc;
+>			drmModeCrtc *saved_crtc;
+>};
 
 drmModeResPtr drmModeGetResources(int fd) ， 是获取显示器各种资源的。
 
 >		struct drmModeRes {
-   		uint32_t count_fbs;             // 帧缓冲的数量
-   		uint32_t *fbs;                  // 帧缓冲的ID数组
-    	uint32_t count_crtcs;           // CRTC的数量
-    	uint32_t *crtcs;                // CRTC的ID数组
-    	uint32_t count_connectors;      // 连接器的数量
-    	uint32_t *connectors;           // 连接器的ID数组
-    	uint32_t count_encoders;        // 编码器的数量
-    	uint32_t *encoders;             // 编码器的ID数组
-    	uint32_t min_width, min_height; // 最小分辨率
-    	uint32_t max_width, max_height; // 最大分辨率
-	};
+>			uint32_t count_fbs;             // 帧缓冲的数量
+>  			uint32_t *fbs;                  // 帧缓冲的ID数组
+>	   		uint32_t count_crtcs;           // CRTC的数量
+>    			uint32_t *crtcs;                // CRTC的ID数组
+>    			uint32_t count_connectors;      // 连接器的数量
+>    			uint32_t *connectors;           // 连接器的ID数组
+>    			uint32_t count_encoders;        // 编码器的数量
+>		    	uint32_t *encoders;             // 编码器的ID数组
+>		    	uint32_t min_width, min_height; // 最小分辨率
+>		    	uint32_t max_width, max_height; // 最大分辨率
+>		};
 
 之后就是初始化framebuffer，将crtc / encoder / connector 等建立联系和初始化，一切执行完之后就可以在空白的"画布"上自由发挥了。
 
@@ -97,6 +97,7 @@ drmModeResPtr drmModeGetResources(int fd) ， 是获取显示器各种资源的�
 ![Image](./image/drm_2.png)
 
 按CTRL + ALT + F3/4/5/6,将ubuntu切换到无图形化界面，避免/dev/dri/card0被占用，否则会显示permisson denied，最终运行结果如下，运行的时候有些小问题，只显示了一半，不过也不重要了，毕竟你已经成功的在这片宽广的土地上留下了你的一笔，接下来还需要更加深入的探索。
+
 ![Image](./image/drm_3.png)
 
 
