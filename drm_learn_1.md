@@ -100,7 +100,29 @@ drmModeResPtr drmModeGetResources(int fd) ， 是获取显示器各种资源的�
 
 ![Image](./image/drm_3.png)
 
+### 源码modeset-atomic.c
+## Property
+properity就是把传入的参数单独拿出来，做成独立的属性进行设置或者提取。
 
+property主要是：name、id、value三部分组成。
+
+为什么要采用property呢？不用的话，例如设置ctrc的属性是drmModeSetCrtc(...)，设置plane的属性数drmModeSetPlane(...)，此外还有设置connector等等，这样在代码的各个角落都能见到drmModeSetxxxx，如果要修改参数的话就比较麻烦。
+
+采用property的话，虽然增加了代码量，比如
+>		drmModeSetCrtc(crtc_id, fb_id, conn_id, &mode)
+
+变成了
+
+>		req = drmModeAtomicAlloc();
+>		drmModeAtomicAddProperty(req, crtc_id, property_active, 1);
+>		drmModeAtomicAddProperty(req, crtc_id, property_mode_id, blob_id);
+>		drmModeAtomicAddProperty(req, conn_id, property_crtc_id, crtc_id);
+>		drmModeAtomicCommit(fd, req, DRM_MODE_ATOMIC_ALLOW_MODESET, NULL);
+>		drmModeAtomicFree(req);
+
+但相应的程序更加灵活了，可以把所有设置参数的代码放到一起，并且property采用的是原子提交，在提交的时候只有成功和失败两种状态。
+
+![Image](./image/drm_property_1.png)
 
 
 
